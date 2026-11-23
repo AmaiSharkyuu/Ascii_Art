@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bouquet plein écran</title>
+<style>
+  :root { --hud:#8a8a8a; --hud-hi:#e8e8e8; --line:#3a3a3a; }
+  html, body { margin:0; height:100%; background:#000; overflow:hidden; }
+  canvas { display:block; position:fixed; inset:0; width:100vw; height:100vh; cursor:grab; touch-action:none; }
+  canvas.drag { cursor:grabbing; }
+  #hud { position:fixed; left:16px; bottom:14px; display:flex; flex-wrap:wrap; align-items:center; gap:6px;
+    font:12px/1 "Cascadia Mono", Consolas, monospace; color:var(--hud); transition:opacity .6s; user-select:none; }
+  #hud.hide { opacity:0; pointer-events:none; }
+  #hud button { font:inherit; color:inherit; background:rgba(0,0,0,.6); border:1px solid var(--line); border-radius:0; padding:6px 9px; cursor:pointer; }
+  #hud button:hover { color:var(--hud-hi); border-color:#777; }
+  #hud kbd { color:#5c5c5c; font:inherit; }
+  #hud .hint { color:#5c5c5c; padding-left:6px; }
+</style>
+</head>
+<body>
+<canvas id="view"></canvas>
+<div id="hud">
+  <button data-act="replant">replanter <kbd>R</kbd></button>
+  <button data-act="mode" id="modeBtn">mode : ascii <kbd>C</kbd></button>
+  <button data-act="spin" id="spinBtn">rotation auto : oui <kbd>A</kbd></button>
+  <button data-act="pause" id="pauseBtn">pause <kbd>espace</kbd></button>
+  <button data-act="less">densit&eacute; &minus;</button>
+  <button data-act="more">densit&eacute; +</button>
+  <span class="hint">glisser : tourner &middot; molette : zoom</span>
+</div>
+<script src="js/engine.js"></script>
+<script>
+  // plein-ecran.html?espece=lycoris&couleur=bleu  (couleur: a name like rouge, or a hex without #)
+  const qs = new URLSearchParams(location.search);
+  const sp = qs.get('espece');
+  const species = BouquetEngine.SPECIES[sp] || sp === 'fanee' ? sp : 'lys';
+  let color = qs.get('couleur') || 'melange';
+  if (/^[0-9a-f]{6}$/i.test(color)) color = '#' + color;
+  const b = BouquetEngine.create(document.getElementById('view'), {
+    species, color, interactive: true,
+    seed: qs.get('seed') ? +qs.get('seed') : undefined, time: parseFloat(qs.get('t')) || 0,
+  });
+  if (qs.get('yaw')) b.setView(+qs.get('yaw'), qs.get('pitch') ? +qs.get('pitch') : .1).setAutoSpin(false);
+  if (qs.get('raw')) b.raw(true);
+  if (qs.get('still')) b.setPaused(true);
+  b.play();
+  window.bouquet = b;
+
+  const hud = document.getElementById('hud');
+  const label = (id, t) => { document.getElementById(id).firstChild.textContent = t + ' '; };
+  const actions = {
+    replant() { b.replant(); },
+    mode() { b.setMode(b.mode === 'ascii' ? 'code' : 'ascii'); label('modeBtn', 'mode : ' + b.mode); },
+    spin() { b.setAutoSpin(!b.autoSpin); label('spinBtn', 'rotation auto : ' + (b.autoSpin ? 'oui' : 'non')); },
+    pause() { b.setPaused(!b.paused); label('pauseBtn', b.paused ? 'lecture' : 'pause'); },
+    less() { b.density(1); }, more() { b.density(-1); },
+  };
+  hud.addEventListener('click', e => { const t = e.target.closest('button'); if (t) actions[t.dataset.act](); });
+  addEventListener('keydown', e => {
+    const k = e.key.toLowerCase();
+    if (k === 'r') actions.replant(); else if (k === 'c') actions.mode(); else if (k === 'a') actions.spin();
+    else if (k === ' ') { e.preventDefault(); actions.pause(); }
+    else if (k === '-') actions.less(); else if (k === '+' || k === '=') actions.more();
+    else if (k === 'h') hud.classList.toggle('hide');
+  });
+  let hideTimer;
+  const poke = () => { hud.classList.remove('hide'); clearTimeout(hideTimer); hideTimer = setTimeout(() => hud.classList.add('hide'), 2500); };
+  addEventListener('mousemove', poke); poke();
+</script>
+</body>
+</html>

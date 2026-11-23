@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fleur introuvable</title>
+<meta name="robots" content="noindex">
+<meta name="description" content="Erreur 404 : cette page a fané avant d'éclore.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat+Brush&display=swap" rel="stylesheet">
+<style>html, body { background: #efe7d4; color: #2b2520; margin: 0; } body.loading main, body.loading header { visibility: hidden; }</style>
+<script>
+  // A 404 page is served at whatever address was missing (/site/a/b/c), so relative links break.
+  // Try the likely site folders in turn until the engine loads, then load everything from there.
+  (function () {
+    var seg = location.pathname.split('/').filter(Boolean);
+    var bases = [];
+    if (location.protocol === 'file:') bases.push('./');
+    if (seg.length && !(seg.length === 1 && /\.html?$/i.test(seg[0]))) bases.push('/' + seg[0] + '/');
+    bases.push('/');
+    window.__siteBases = bases;
+  })();
+</script>
+</head>
+<body class="loading">
+<header class="top">
+  <h1 class="sr">Erreur 404</h1>
+  <canvas id="t404" class="micro e404-title" aria-hidden="true"></canvas>
+  <p class="sub">~ cette page a fan&eacute; avant d'&eacute;clore ~</p>
+</header>
+
+<main class="e404" data-frame="box">
+  <div class="e404-stage"><canvas id="wilt" class="win" aria-label="Un lys qui pousse, fleurit puis fane, en caractères"></canvas></div>
+  <div class="e404-text">
+    <pre class="e404-tag" aria-hidden="true">  _   _    ___    _   _
+ | | | |  / _ \  | | | |
+ | |_| | | | | | | |_| |
+ |___  | | |_| | |___  |
+     |_|  \___/      |_|</pre>
+    <p>L'adresse <code id="path"></code> ne m&egrave;ne &agrave; aucun bouquet.</p>
+    <p class="muted">Elle a peut-&ecirc;tre &eacute;t&eacute; cueillie... ou elle n'a jamais pouss&eacute;.</p>
+    <form class="mini-search" data-frame="search" id="mini" role="search">
+      <label for="mq" class="prompt-sm">&gt;</label>
+      <input id="mq" type="search" placeholder="chercher un autre bouquet..." autocomplete="off" spellcheck="false">
+    </form>
+    <div class="e404-actions">
+      <a class="abox" id="home"><pre>+-----------------------+
+| &lt; retour au fleuriste |
++-----------------------+</pre></a>
+      <button class="abtn" id="again" type="button">[ replanter ]</button>
+    </div>
+    <p class="hint">glisser : tourner &middot; molette : zoom</p>
+  </div>
+</main>
+
+<script>
+  (function () {
+    var bases = window.__siteBases, i = 0;
+    function load(src, ok, ko) { var s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = ko; document.body.appendChild(s); }
+    function tryBase() {
+      var b = bases[i];
+      if (!b) { document.body.classList.remove('loading'); return; }
+      load(b + 'js/engine.js', function () {
+        var l = document.createElement('link'); l.rel = 'stylesheet'; l.href = b + 'css/site.css';
+        l.onload = function () { load(b + 'js/ui.js', function () { start(b); }); };
+        document.head.appendChild(l);
+      }, function () { i++; tryBase(); });
+    }
+    tryBase();
+
+    function start(base) {
+      document.body.classList.remove('loading');
+      var UI = window.AsciiUI, E = window.BouquetEngine;
+      document.querySelectorAll('[data-frame]').forEach(UI.frame);
+
+      // which address was missing (also works when another site redirects here with ?from=)
+      var from = new URLSearchParams(location.search).get('from');
+      var shown = from || decodeURIComponent(location.pathname + location.hash);
+      if (location.protocol === 'file:' && !from) shown = '/une-page-perdue';
+      document.getElementById('path').textContent = shown;
+      document.getElementById('home').href = base;
+
+      // the 404 flower: grows, blooms, wilts, drops its petals. A different colour each visit.
+      var colors = ['rouge', 'rose', 'jaune', 'orange', 'blanc', 'peche'];
+      var flower = E.create(document.getElementById('wilt'), {
+        species: 'fanee', color: colors[Math.floor(Math.random() * colors.length)],
+        interactive: true, pitch: .32, fit: .84, spinSpeed: .08,
+      });
+      flower.play();
+      window.wiltedFlower = flower;
+      document.getElementById('again').addEventListener('click', function () { flower.replant(); });
+
+      document.getElementById('mini').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var q = document.getElementById('mq').value.trim();
+        location.href = base + (q ? '#q=' + encodeURIComponent(q) : '');
+      });
+
+      var t = document.getElementById('t404');
+      function title() {
+        var size = Math.min(t.clientHeight * 1.05, t.clientWidth * .9 / (UI.measure('404', 100) / 100));
+        var cell = t.clientWidth < 600 ? [4, 4] : [6, 7];
+        UI.micro(t, '404', { size: size, align: 'center', cell: cell, charPx: cell[1] + 1, baseline: .55,
+          color: function (x, y, h) { return h % 6 === 0 ? UI.INK : UI.ACCENT; } });
+      }
+      UI.fontReady().then(title);
+      var rz = 0;
+      addEventListener('resize', function () { clearTimeout(rz); rz = setTimeout(title, 120); });
+    }
+  })();
+</script>
+</body>
+</html>
