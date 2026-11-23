@@ -1,4 +1,4 @@
-/* Bouquet ASCII engine: 3D bouquets (lys, lycoris) rendered as coloured characters.
+/* Bouquet ASCII engine: 3D bouquets (lys, lycoris, tournesol, coquelicot, rose, tulipe, marguerite) rendered as coloured characters.
    A tiny software rasterizer draws the scene at one pixel per character cell (z-buffer + lighting),
    then every cell becomes a glyph tinted with that colour.
    window.BouquetEngine = { create, COLORS, SPECIES, paletteFor, hexToRgb } */
@@ -108,7 +108,49 @@
     citron: P({ base: '#f4e44a', light: '#fff69a', dark: '#b0a010', throat: '#e8c828' }),
   };
   PRESETS.tournesol.blanc = PRESETS.tournesol.creme;
+  // poppies: a black blotch at the base of each petal, dark stamens around a grey-green capsule
+  PRESETS.coquelicot = {
+    rouge: P({ base: '#e2201a', light: '#ff5a3a', dark: '#8a0c08', throat: '#140606', stamen: '#1c1418', anther: '#2a1e3a' }),
+    orange: P({ base: '#f07a18', light: '#ffae52', dark: '#a0400a', throat: '#e8b820', stamen: '#e8c040', anther: '#d89a18' }),
+    blanc: P({ base: '#f4f0ea', light: '#ffffff', dark: '#c8beb0', throat: '#2a2030', stamen: '#2a2230', anther: '#3a2a4a' }),
+    rose: P({ base: '#ec6a9a', light: '#ffb0cc', dark: '#9a2850', throat: '#3a0a1e', stamen: '#2a1420', anther: '#3a2040' }),
+    jaune: P({ base: '#f4d22a', light: '#fff08a', dark: '#b08e0a', throat: '#f0a018', stamen: '#f6d040', anther: '#e8a010' }),
+    saumon: P({ base: '#f4907a', light: '#ffc4b0', dark: '#a4503c', throat: '#2a0e0a', stamen: '#24140e', anther: '#3a2030' }),
+    violet: P({ base: '#8a3cb8', light: '#c890e8', dark: '#481c6a', throat: '#1a0a22', stamen: '#1a1020', anther: '#2a1a3a' }),
+  };
+  PRESETS.rose = {
+    rouge: P({ base: '#c8102e', light: '#f0405a', dark: '#5a0612', throat: '#7a0a1a' }),
+    rose: P({ base: '#f07aa8', light: '#ffc0d8', dark: '#a8306a', throat: '#f8d0e0' }),
+    blanc: P({ base: '#f6f2ea', light: '#ffffff', dark: '#c8bca8', throat: '#f2e8c0' }),
+    jaune: P({ base: '#f4cc30', light: '#fff0a0', dark: '#b08a10', throat: '#f0a020' }),
+    peche: P({ base: '#f4a07a', light: '#ffd8bc', dark: '#b45a3c', throat: '#f8c890' }),
+    bordeaux: P({ base: '#7a0f2a', light: '#b02a48', dark: '#3a0412', throat: '#4a0616' }),
+    corail: P({ base: '#f2694e', light: '#ffa890', dark: '#a83420', throat: '#f8b060' }),
+    lavande: P({ base: '#b4a0e0', light: '#e2d8ff', dark: '#6a54a0', throat: '#d8c8f0' }),
+  };
+  PRESETS.tulipe = {
+    rouge: P({ base: '#d8182a', light: '#ff5048', dark: '#7a0812', throat: '#f0c020' }),
+    jaune: P({ base: '#f6d020', light: '#fff27a', dark: '#b08c08', throat: '#e8a010' }),
+    rose: P({ base: '#f07aaa', light: '#ffc6dc', dark: '#a8306a', throat: '#f4f0e0' }),
+    blanc: P({ base: '#f6f4ec', light: '#ffffff', dark: '#c8c2b0', throat: '#e6e8b0' }),
+    violet: P({ base: '#8a3cc8', light: '#c48af0', dark: '#4a1a70', throat: '#f0f0f0' }),
+    orange: P({ base: '#f27218', light: '#ffaa50', dark: '#a03c08', throat: '#f8d040' }),
+    noir: P({ base: '#3a1830', light: '#6a3458', dark: '#140610', throat: '#24101c' }),
+  };
+  for (const k in PRESETS.tulipe) Object.assign(PRESETS.tulipe[k], { stamen: hex('#3a3424'), anther: hex('#2a2018') });
+  PRESETS.marguerite = {
+    blanc: P({ base: '#f8f6f0', light: '#ffffff', dark: '#c8c4b8', throat: '#efeccc' }),
+    rose: P({ base: '#f08ab4', light: '#ffc8dc', dark: '#a83c6c', throat: '#f8e0ea' }),
+    jaune: P({ base: '#f6dc40', light: '#fff4a0', dark: '#b09a10', throat: '#f2c828' }),
+    violet: P({ base: '#9a5ad8', light: '#d0a8f8', dark: '#542a84', throat: '#d8c0f0' }),
+    lavande: P({ base: '#b4a0e0', light: '#e2d8ff', dark: '#6a54a0', throat: '#e0d8f4' }),
+    orange: P({ base: '#f28a28', light: '#ffbe6a', dark: '#a84c0c', throat: '#f8c050' }),
+  };
   const MIXES = {
+    coquelicot: ['rouge', 'rouge', 'orange', 'rouge', 'blanc', 'rose', 'jaune', 'rouge', 'saumon'],
+    rose: ['rouge', 'rose', 'blanc', 'peche', 'jaune', 'rouge', 'corail', 'bordeaux'],
+    tulipe: ['rouge', 'jaune', 'rose', 'blanc', 'violet', 'orange', 'rouge', 'rose'],
+    marguerite: ['blanc', 'blanc', 'rose', 'blanc', 'jaune', 'violet', 'blanc', 'lavande'],
     tournesol: ['jaune', 'orange', 'jaune', 'rouge', 'citron', 'jaune', 'creme'],
     lys: ['rouge', 'rose', 'creme', 'jaune', 'peche', 'carmin', 'orange', 'blanc'],
     lycoris: ['rouge', 'blanc', 'dore', 'rose', 'rouge', 'blanc'],
@@ -120,6 +162,14 @@
     if (species === 'lys') {
       p.throat = lum > .8 ? hex('#d6e6a0') : mixc(rgb, hex('#f5be3c'), .5);
       p.speck = mixc(p.dark, BLACK, .5); p.specks = lum > .8 ? .35 : 1;
+    } else if (species === 'coquelicot') {
+      p.throat = mixc(rgb, BLACK, .88); p.stamen = hex('#1c1418'); p.anther = hex('#2a1e3a');
+    } else if (species === 'tulipe') {
+      p.throat = lum > .75 ? hex('#e6e8b0') : mixc(rgb, hex('#f0c020'), .6); p.stamen = hex('#3a3424'); p.anther = hex('#2a2018');
+    } else if (species === 'rose') {
+      p.throat = mixc(rgb, p.dark, .3);
+    } else if (species === 'marguerite') {
+      p.throat = mixc(rgb, WHITE, .3);
     } else {
       p.throat = mixc(rgb, p.dark, .35);
       p.stamen = mixc(rgb, p.light, .3); p.anther = lum > .75 ? hex('#d8a030') : hex('#ecc050');
@@ -154,12 +204,16 @@
     lys: { label: 'lys', latin: 'Lilium' },
     lycoris: { label: 'lycoris', latin: 'Lycoris radiata' },
     tournesol: { label: 'tournesol', latin: 'Helianthus annuus' },
+    coquelicot: { label: 'coquelicot', latin: 'Papaver rhoeas' },
+    rose: { label: 'rose', latin: 'Rosa', fem: true },
+    tulipe: { label: 'tulipe', latin: 'Tulipa', fem: true },
+    marguerite: { label: 'marguerite', latin: 'Leucanthemum vulgare', fem: true },
   };
 
   // ---------- geometry shared by drawing and collision tests ----------
   const PNU = 11, PNV = 5;
   function petalGrid(f, k, T, head, eb, bud) {
-    const A = f.axis, outer = k % 2 === 0, s = f.shape;
+    const s = f.shape, A = f.axis, outer = s.even || k % 2 === 0;
     const L = f.L * (s.budLen + (1 - s.budLen) * eb) * bud;
     const n = f.nPetals || 6;
     const phi = f.rot + k * 2 * Math.PI / n + (f.phiJit ? f.phiJit[k] : 0) + wind(T, f.stem.top, 1) * .05 * eb;
@@ -176,7 +230,8 @@
       const u = i / (PNU - 1);
       const a = alpha + rec * u * u;
       if (i > 0) { r += Math.sin(a) * ds; h += Math.cos(a) * ds; }
-      const w = wMax * Math.pow(Math.sin(Math.PI * Math.min(.985, Math.pow(u, .78))), .9) + wMax * .08 * (1 - u);
+      // peak: where the petal is widest (higher = rounder tip); full: lower = fuller; tip: blunt end
+      const w = wMax * Math.pow(Math.sin(Math.PI * Math.min(s.tip || .985, Math.pow(u, s.peak || .78))), s.full || .9) + wMax * .08 * (1 - u);
       const nin = [-Math.cos(a), Math.sin(a)]; // in (r,h): the inner face direction
       for (let j = 0; j < PNV; j++) {
         const v = j / (PNV - 1) * 2 - 1;
@@ -198,7 +253,7 @@
     const st = f.st, A = f.axis, lines = [];
     for (let i = 0; i <= st.count; i++) {
       const pistil = i === st.count;
-      const phi = f.rot + i * Math.PI / 3 + Math.PI / 6 + Math.sin(i * 7.1 + f.phase) * .2;
+      const phi = f.rot + (st.ring ? i * 2 * Math.PI / st.count : i * Math.PI / 3 + Math.PI / 6) + Math.sin(i * 7.1 + f.phase) * .2;
       const er = add(mul(f.e1, Math.cos(phi)), mul(f.e2, Math.sin(phi)));
       const dir = pistil ? norm(add(mul(A, 1), mul(er, st.pistilLean))) : norm(add(mul(A, st.dirA), mul(er, st.dirR)));
       const len = f.L * (pistil ? st.pistilLen : st.len) * k * (pistil ? 1 : .9 + .1 * Math.sin(i * 3.3));
@@ -279,6 +334,22 @@
   const DISC_C = hex('#6b5a20'), DISC_B = hex('#3e2612'), DISC_R = hex('#7a4812'), POLLEN = hex('#e6b422');
   const BRACT_PAL = P({ base: '#4f8a2e', light: '#7cb84a', dark: '#2a5418', throat: '#3a6a22', speck: '#000000', stamen: '#000000', anther: '#000000' });
   BRACT_PAL.specks = 0;
+  const SUN_DISC = { c: DISC_C, b: DISC_B, r: DISC_R, pollen: POLLEN };
+  const DAISY_DISC = { c: hex('#c88a0c'), b: hex('#f0bc18'), r: hex('#f6d23a'), pollen: hex('#fff07a') };
+
+  // poppy: four wide crinkled petals in a cup; nodding buds
+  const POP_SHAPE = { wOut: 1.05, wIn: 1, curl: .35, ruffle: .12, ruffleFreq: 22, closedOut: .15, closedIn: .1, budLen: .55, peak: 1.35, full: .45, tip: .93, noRib: true };
+  const POP_ST = { ring: true, count: 36, len: .3, dirA: .55, dirR: .85, bendA: 0, bendUp: 0, rad: .0022, antherR: .0055, pistilLen: .12, pistilLean: 0, pistilR: .018,
+    pistilCol: [126, 150, 104], tipCol: [70, 26, 52], tipR: .03 };
+  // rose: rings of round cupped petals, tight in the middle, opening outwards
+  const ROSE_SHAPE = { wOut: .95, wIn: .95, curl: .5, ruffle: .03, ruffleFreq: 7, closedOut: .12, closedIn: .12, budLen: .7, peak: 1.5, full: .5, tip: .9, even: true };
+  const ROSE_RINGS = [[3, .62, .06, .25], [4, .78, .22, .35], [5, .9, .42, .5], [5, 1, .68, .7], [6, 1.06, .98, .9]]; // n, length, open, recurve
+  const SEPAL_SHAPE = { wOut: .22, wIn: .22, curl: .15, ruffle: 0, ruffleFreq: 1, closedOut: .3, closedIn: .3, budLen: .9, even: true };
+  // tulip: six egg-shaped petals, tips curving back in
+  const TUL_SHAPE = { wOut: .62, wIn: .66, curl: .38, ruffle: 0, ruffleFreq: 1, closedOut: .16, closedIn: .1, budLen: .85, peak: 1.25, full: .6, tip: .95 };
+  const TUL_ST = { count: 6, len: .35, dirA: .92, dirR: .3, bendA: 0, bendUp: 0, rad: .003, antherR: .008, pistilLen: .3, pistilLean: 0, pistilR: .006, pistilCol: [196, 204, 150], tipCol: [220, 226, 170] };
+  // daisy: a small yellow dome and many thin white rays
+  const DAISY_SHAPE = { wOut: .15, wIn: .15, curl: .08, ruffle: .02, ruffleFreq: 5, closedOut: .15, closedIn: .08, budLen: .45 };
 
   // ---------- one stem of each species ----------
   // item(): size of the head (used to place it on the dome); make(): the stem and its flower(s)
@@ -363,6 +434,96 @@
         return { stem, flowers: [f] };
       },
     },
+    coquelicot: {
+      item(R, isBud) { const L = isBud ? R(.07, .085) : R(.15, .18); return { L, reach: isBud ? .06 : L * 1.15 }; },
+      make(s, R, rnd, p, bloomAt) {
+        // buds nod: the head points down and the thin stem makes a crook above it
+        const axis = s.isBud ? norm(add(mul(s.dir, .6), [0, -1, 0])) : norm(add(s.dir, [0, .35, 0]));
+        const stemStart = R(.15, .9), stemDur = R(2, 2.7);
+        const leaves = [];
+        if (rnd() < .7) leaves.push({ u: R(.08, .3), az: R(0, 6.28), len: R(.14, .2), w: R(.025, .032), col: GRASS[(rnd() * GRASS.length) | 0] });
+        const stem = { base: [R(-.06, .06), 0, R(-.06, .06)], top: s.pos, axis, stemStart, stemDur, stemEnd: stemStart + stemDur, col: STEM_GREENS[(rnd() * 4) | 0], rad: .009, leaves };
+        const [e1, e2] = basis(axis);
+        return { stem, flowers: [{
+          species: 'coquelicot', stem, off: [0, 0, 0], isBud: s.isBud, axis, e1, e2, L: s.L, p, specks: [], nPetals: 4,
+          shape: POP_SHAPE, st: POP_ST, budMixMax: s.isBud ? 1.02 : .7, noCenter: true,
+          bloomStart: s.isBud ? 1e9 : Math.max(stem.stemEnd + .8, bloomAt),
+          bloomDur: R(1.8, 2.3), rot: R(0, 6.28), open: R(.95, 1.15), recurve: R(.2, .4), phase: R(0, 6.28), cupBias: R(.8, 1.2),
+        }] };
+      },
+    },
+    rose: {
+      item(R, isBud) { const L = isBud ? R(.085, .1) : R(.12, .145); return { L, reach: isBud ? .06 : L * 1.08 }; },
+      make(s, R, rnd, p, bloomAt) {
+        const axis = s.isBud ? norm(add(s.dir, [0, .9, 0])) : norm(add(s.dir, [0, .3, 0]));
+        const stemStart = R(.15, .9), stemDur = R(2, 2.7);
+        const leaves = [];
+        for (let k = 0, n = 2 + (rnd() < .5 ? 1 : 0); k < n; k++)
+          leaves.push({ u: R(.3, .75), az: R(0, 6.28), len: R(.1, .14), w: R(.03, .04), col: GRASS[(rnd() * GRASS.length) | 0] });
+        const stem = { base: [R(-.06, .06), 0, R(-.06, .06)], top: s.pos, axis, stemStart, stemDur, stemEnd: stemStart + stemDur, col: hex('#3f7a2e'), rad: .012, leaves };
+        const [e1, e2] = basis(axis);
+        const start = s.isBud ? 1e9 : Math.max(stem.stemEnd + .8, bloomAt), dur = R(2, 2.5), rot = R(0, 6.28);
+        // each ring is drawn as its own "flower" on the same head; rings of one rose never push each other
+        const group = {}, flowers = [], nR = s.isBud ? 3 : ROSE_RINGS.length;
+        for (let r = 0; r < nR; r++) {
+          const [n, lk, open, recurve] = ROSE_RINGS[r], deep = (ROSE_RINGS.length - 1 - r) * .07;
+          const pr = {};
+          for (const key in p) pr[key] = Array.isArray(p[key]) ? mixc(p[key], p.dark, deep) : p[key];
+          flowers.push({
+            species: 'rose', stem, group, off: [0, 0, 0], isBud: s.isBud, axis, e1, e2, L: s.L * lk, p: pr, specks: [], nPetals: n,
+            r0: .004 + r * .006, shape: ROSE_SHAPE, st: null, budMixMax: s.isBud ? .5 : .35, noCenter: true,
+            bloomStart: start + (nR - 1 - r) * .18, bloomDur: dur, rot: rot + r * 2.4, open, recurve, phase: R(0, 6.28), cupBias: 1,
+          });
+        }
+        // green sepals under the outer ring, folded down
+        const out = flowers[flowers.length - 1];
+        out.bracts = { stem, off: out.off, axis, e1, e2, L: s.L * .75, p: BRACT_PAL, specks: [], nPetals: 5, r0: .006,
+          shape: SEPAL_SHAPE, open: s.isBud ? .5 : 1.9, recurve: .6, rot: rot + .3, cupBias: 1, phase: 0, budMix: 0, bloom: 0 };
+        return { stem, flowers };
+      },
+    },
+    tulipe: {
+      item(R) { const L = R(.16, .19); return { L, reach: L * .78 }; },
+      make(s, R, rnd, p, bloomAt) {
+        const axis = norm(add(s.dir, [0, .9, 0]));
+        const stemStart = R(.15, .9), stemDur = R(2, 2.7);
+        const leaves = [];
+        for (let k = 0, n = 1 + (rnd() < .6 ? 1 : 0); k < n; k++)
+          leaves.push({ u: R(.04, .3), az: R(0, 6.28), len: R(.3, .42), w: R(.055, .07), col: GRASS[(rnd() * GRASS.length) | 0] });
+        const stem = { base: [R(-.06, .06), 0, R(-.06, .06)], top: s.pos, axis, stemStart, stemDur, stemEnd: stemStart + stemDur, col: hex('#6aa04a'), rad: .016, leaves };
+        const [e1, e2] = basis(axis);
+        return { stem, flowers: [{
+          species: 'tulipe', stem, off: [0, 0, 0], isBud: false, axis, e1, e2, L: s.L, p, specks: [],
+          shape: TUL_SHAPE, st: TUL_ST, budMixMax: .55, noCenter: true,
+          bloomStart: Math.max(stem.stemEnd + .8, bloomAt), bloomDur: R(2, 2.6), rot: R(0, 6.28), open: R(.72, .82), recurve: R(-.95, -.8), phase: R(0, 6.28), cupBias: R(.9, 1.1),
+        }] };
+      },
+    },
+    marguerite: {
+      item(R) { const L = R(.09, .11), Rd = R(.03, .036); return { L, Rd, reach: (L + Rd) * .92 }; },
+      make(s, R, rnd, p, bloomAt) {
+        const axis = norm(add(s.dir, [0, .3, 0]));
+        const stemStart = R(.15, .9), stemDur = R(2, 2.7);
+        const leaves = [];
+        if (rnd() < .6) leaves.push({ u: R(.15, .45), az: R(0, 6.28), len: R(.1, .14), w: R(.016, .022), col: GRASS[(rnd() * GRASS.length) | 0] });
+        const stem = { base: [R(-.06, .06), 0, R(-.06, .06)], top: s.pos, axis, stemStart, stemDur, stemEnd: stemStart + stemDur, col: STEM_GREENS[(rnd() * 4) | 0], rad: .008, leaves };
+        const [e1, e2] = basis(axis);
+        const n = 2 * (11 + ((rnd() * 4) | 0)); // 22..28 rays
+        const phiJit = [...Array(n)].map(() => R(-.06, .06));
+        const rot = R(0, 6.28);
+        const f = {
+          species: 'marguerite', stem, off: [0, 0, 0], isBud: false, axis, e1, e2, L: s.L, p, specks: [],
+          nPetals: n, phiJit, r0: s.Rd * .9, Rd: s.Rd, disc: true, discPal: DAISY_DISC, dome: .55, shape: DAISY_SHAPE, st: null, budMixMax: .8,
+          bloomStart: Math.max(stem.stemEnd + .8, bloomAt), bloomDur: R(1.8, 2.3), rot, open: R(1.45, 1.6), recurve: R(.15, .35),
+          phase: R(0, 6.28), cupBias: R(.8, 1.2), seedTwist: R(0, 6.28),
+        };
+        f.bracts = {
+          stem, off: f.off, axis, e1, e2, L: s.L * .3, p: BRACT_PAL, specks: [], nPetals: 12, r0: s.Rd * .8,
+          shape: BRACT_SHAPE, open: 1.8, recurve: .3, rot: rot + .1, cupBias: 1, phase: f.phase, budMix: 0, bloom: 0,
+        };
+        return { stem, flowers: [f] };
+      },
+    },
   };
 
   // what a plain "lys rouge" or "lycoris" bouquet contains
@@ -370,6 +531,10 @@
     lys: c => [{ species: 'lys', color: c, count: 14, buds: 4 }],
     lycoris: c => [{ species: 'lycoris', color: c, count: 13 }],
     tournesol: c => [{ species: 'tournesol', color: c, count: 8 }],
+    coquelicot: c => [{ species: 'coquelicot', color: c, count: 13, buds: 4 }],
+    rose: c => [{ species: 'rose', color: c, count: 13, buds: 3 }],
+    tulipe: c => [{ species: 'tulipe', color: c, count: 15 }],
+    marguerite: c => [{ species: 'marguerite', color: c, count: 22 }],
   };
   const MAX_STEMS = 30;
 
@@ -484,7 +649,7 @@
       const r = i / (NR - 1);
       for (let j = 0; j < NT; j++) {
         const th = j / (NT - 1) * 2 * Math.PI;
-        const h = Rd * .22 * (1 - r * r);
+        const h = Rd * (f.dome || .22) * (1 - r * r);
         const c = Math.cos(th) * r * Rd, s = Math.sin(th) * r * Rd;
         G.push([head[0] + f.axis[0] * h + f.e1[0] * c + f.e2[0] * s, head[1] + f.axis[1] * h + f.e1[1] * c + f.e2[1] * s, head[2] + f.axis[2] * h + f.e1[2] * c + f.e2[2] * s]);
       }
@@ -539,7 +704,7 @@
           if (!b) continue;
           for (let n = 0; n < b.length; n += 2) {
             const fj = b[n];
-            if (fj <= fi) continue;
+            if (fj <= fi || (fl[fi].group && fl[fi].group === fl[fj].group)) continue;
             const q = b[n + 1], ex = p[0] - q[0], ey = p[1] - q[1], ez = p[2] - q[2];
             if (ex * ex + ey * ey + ez * ez < G2) pairs.add(fi * 4096 + fj);
           }
@@ -650,7 +815,8 @@
     function setupCamera() {
       // frame the whole bouquet: from its base (y=0) to its top, and its widest reach
       const bd = scene.bounds || { maxY: 2.6, maxR: .8 };
-      const T = [0, bd.maxY * .5, 0];
+      // opts.target: a point, or 'head' (the last flower's head, for close-ups)
+      const T = opts.target === 'head' && scene.flowers.length ? headOf(scene.flowers[scene.flowers.length - 1]) : opts.target || [0, bd.maxY * .5, 0];
       cam.pos = [T[0] + dist * Math.cos(pitch) * Math.sin(yaw), T[1] + dist * Math.sin(pitch), T[2] + dist * Math.cos(pitch) * Math.cos(yaw)];
       cam.fwd = norm(sub(T, cam.pos));
       cam.right = norm(cross(cam.fwd, UP));
@@ -690,7 +856,7 @@
         else { a = Pp.base; b = Pp.dark; t = (u - .8) / .2 * .4; }
         RC = a[0] + (b[0] - a[0]) * t; GC = a[1] + (b[1] - a[1]) * t; BC = a[2] + (b[2] - a[2]) * t;
         if (m.outer) { RC = RC * .9 + Pp.dark[0] * .1; GC = GC * .9 + Pp.dark[1] * .1; BC = BC * .9 + Pp.dark[2] * .1; }
-        const mr = Math.exp(-v * v * 45) * (1 - u) * .45;
+        const mr = f.shape && f.shape.noRib ? 0 : Math.exp(-v * v * 45) * (1 - u) * .45;
         RC += (Pp.throat[0] - RC) * mr; GC += (Pp.throat[1] - GC) * mr; BC += (Pp.throat[2] - BC) * mr;
         const vf = .92 + .08 * Math.cos(v * 24 + u * 4);
         RC *= vf; GC *= vf; BC *= vf;
@@ -706,13 +872,13 @@
         const ao = .55 + .45 * Math.min(1, u * 3.5);
         RC *= ao; GC *= ao; BC *= ao;
       } else if (m.t === 2) { // sunflower seed disc: phyllotaxis spirals, pollen ring at the rim
-        const r = u, th = (v + 1) * Math.PI, f = m.f;
+        const r = u, th = (v + 1) * Math.PI, f = m.f, dp = f.discPal || SUN_DISC;
         const q = Math.cos(th * 21 + r * 30 + f.seedTwist) * Math.cos(th * 34 - r * 48);
         let c;
-        if (r < .2) c = mixc(DISC_C, DISC_B, smooth(r / .2));
-        else if (r < .7) c = DISC_B;
-        else c = mixc(DISC_B, DISC_R, smooth((r - .7) / .3));
-        if (r > .72 && q > .5 && f.bloom > .6) c = POLLEN;
+        if (r < .2) c = mixc(dp.c, dp.b, smooth(r / .2));
+        else if (r < .7) c = dp.b;
+        else c = mixc(dp.b, dp.r, smooth((r - .7) / .3));
+        if (r > .72 && q > .5 && f.bloom > .6) c = dp.pollen;
         const k = .72 + .32 * q;
         RC = c[0] * k; GC = c[1] * k; BC = c[2] * k;
         const g = f.budMix;
@@ -868,23 +1034,27 @@
         surface(petalGrid(f, k, T, head, eb, bud), PNU, PNV, { t: 0, f, k, outer }, outer ? .35 : .45);
       }
       const A = f.axis, st = f.st;
-      if (f.disc) {
-        // green bracts cupping the head, then the seed disc in front of the rays' bases
+      if (f.bracts) {
+        // green bracts / sepals cupping the head
         const br = f.bracts;
         for (let k = 0; k < br.nPetals; k++)
           surface(petalGrid(br, k, T, madd(head, A, -.012), .35 + .65 * eb, bud), PNU, PNV, { t: 0, f: br, k, outer: true }, .15);
+      }
+      if (f.disc) {
+        // the seed disc in front of the rays' bases
         const d = discGrid(f, madd(head, A, .004), bud * (.55 + .45 * eb));
         surface(d.G, d.NR, d.NT, { t: 2, f }, .18);
         return;
       }
-      if (eb > .02) splat(madd(head, A, .01), .03 * f.L / .3 * eb, f.p.throat);
-      if (b > .45) {
+      if (eb > .02 && !f.noCenter) splat(madd(head, A, .01), .03 * f.L / .3 * eb, f.p.throat);
+      if (st && b > .45) {
         const k = easeOut(clamp01((b - .45) / .55));
         const fil = st.colorFixed || f.p.stamen;
         for (const l of stamenLines(f, head, k)) {
-          for (const P of l.pts) splat(P, l.pistil ? st.pistilR : st.rad, l.pistil && st.colorFixed ? [160, 196, 98] : fil);
+          const pc = l.pistil && (st.pistilCol || (st.colorFixed ? [160, 196, 98] : null));
+          for (const P of l.pts) splat(P, l.pistil ? st.pistilR : st.rad, pc || fil);
           const tip = l.pts[l.pts.length - 1];
-          if (l.pistil) splat(tip, (st.colorFixed ? .017 : .006) * f.L / .3, st.colorFixed ? [214, 232, 160] : f.p.light);
+          if (l.pistil) splat(tip, (st.tipR || (st.colorFixed ? .017 : .006)) * f.L / .3, st.tipCol || (st.colorFixed ? [214, 232, 160] : f.p.light));
           else {
             splat(tip, st.antherR * f.L / .3, f.p.anther);
             if (st.colorFixed) splat(madd(tip, l.er, .01), st.antherR * .8 * f.L / .3, mixc(f.p.anther, BLACK, .15));
@@ -1084,7 +1254,7 @@
     const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
     let petal = R, stem = R;
     const hitPairs = new Set();
-    pts.forEach((arr, fi) => { for (const p of arr) near(p, fj => fj <= fi, (fj, q) => {
+    pts.forEach((arr, fi) => { for (const p of arr) near(p, fj => fj <= fi || (fl[fi].group && fl[fi].group === fl[fj].group), (fj, q) => {
       const d = dist(p, q); if (d < petal) petal = d; if (d < .015) hitPairs.add(fi * 4096 + fj);
     }); });
     let stemHits = 0;
@@ -1099,7 +1269,7 @@
   //   <seed in base 36>.<item>-<item>-...[.<message>]   item = species letter + count + colour id
   //   e.g. "k3f.L3r-T2y-Y5w.Pour%20L%C3%A9a" = 3 red lilies, 2 yellow sunflowers, 5 white lycoris
   // These letters are part of the link format: never change or reuse them, only add new ones.
-  const SPECIES_ID = { lys: 'L', lycoris: 'Y', tournesol: 'T' };
+  const SPECIES_ID = { lys: 'L', lycoris: 'Y', tournesol: 'T', coquelicot: 'C', rose: 'R', tulipe: 'U', marguerite: 'M' };
   const COLOR_ID = {
     melange: 'm', rouge: 'r', blanc: 'w', bleu: 'b', rose: 'p', jaune: 'y', dore: 'g', orange: 'o', violet: 'v',
     peche: 'h', carmin: 'c', corail: 'k', lavande: 'l', turquoise: 't', vert: 'e', noir: 'n', creme: 'i',

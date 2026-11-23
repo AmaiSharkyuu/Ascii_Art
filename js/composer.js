@@ -13,7 +13,7 @@
   let addSpecies = 'lys', addColor = 'rouge';
   const total = () => recipe.reduce((a, e) => a + e.count, 0);
   const copyRecipe = () => recipe.map(e => ({ ...e }));
-  const rowText = e => `${String(e.count).padStart(2)} x ${E.SPECIES[e.species].label} ${S.colorLabel(e.color)}`;
+  const rowText = e => `${String(e.count).padStart(2)} x ${E.SPECIES[e.species].label} ${S.colorLabel(e.color, e.species)}`;
   const newSeed = () => (Math.random() * 1e9) | 0;
 
   // ---------- engine ----------
@@ -47,7 +47,7 @@
       d.innerHTML = `<span class="swatch" aria-hidden="true">${S.swatchHTML(e.species, e.color, 3)}</span><span class="what"></span>
         <button class="abtn" data-r="-" type="button">[-]</button><button class="abtn" data-r="+" type="button">[+]</button><button class="abtn" data-r="x" type="button">[x]</button>`;
       d.querySelector('.what').textContent = rowText(e);
-      const name = `${E.SPECIES[e.species].label} ${S.colorLabel(e.color)}`;
+      const name = `${E.SPECIES[e.species].label} ${S.colorLabel(e.color, e.species)}`;
       d.querySelector('[data-r="-"]').setAttribute('aria-label', `Une tige de moins : ${name}`);
       d.querySelector('[data-r="+"]').setAttribute('aria-label', `Une tige de plus : ${name}`);
       d.querySelector('[data-r="x"]').setAttribute('aria-label', `Retirer : ${name}`);

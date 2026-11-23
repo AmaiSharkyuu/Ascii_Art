@@ -12,7 +12,15 @@
     lys: ['lys', 'lis', 'lily', 'lilies', 'lilium', 'lilys'],
     lycoris: ['lycoris', 'lychoris', 'licoris', 'lycori', 'higanbana', 'spider', 'araignee', 'araignees', 'manjushage', 'radiata'],
     tournesol: ['tournesol', 'tournesols', 'tournsol', 'sunflower', 'sunflowers', 'helianthus', 'soleil', 'soleils', 'girasol', 'girasole'],
+    coquelicot: ['coquelicot', 'coquelicots', 'coquelico', 'coqelicot', 'poppy', 'poppies', 'papaver', 'pavot', 'pavots', 'rhoeas'],
+    // "rose" alone is also a colour: see AMBIGUOUS below
+    rose: ['rosier', 'rosiers', 'rosa', 'rosebud', 'roseraie'],
+    tulipe: ['tulipe', 'tulipes', 'tulip', 'tulips', 'tulipa', 'tullipe'],
+    marguerite: ['marguerite', 'marguerites', 'margueritte', 'daisy', 'daisies', 'paquerette', 'paquerettes', 'leucanthemum', 'bellis'],
   };
+  // a flower and a colour at once: "roses blanches" = white roses, "lys rose" = pink lilies,
+  // "rose rose" = pink roses, "en rose" = anything pink; alone, "rose" means the flower
+  const AMBIGUOUS = new Set(['rose', 'roses']);
   const COLOR_WORDS = {
     rouge: ['rouge', 'rouges', 'red', 'ecarlate', 'vermillon'], blanc: ['blanc', 'blanche', 'blancs', 'blanches', 'white'],
     bleu: ['bleu', 'bleue', 'bleus', 'bleues', 'blue', 'azur'], rose: ['rose', 'roses', 'pink'],
@@ -40,9 +48,12 @@
   function parse(q) {
     let s = ' ' + fold(q).replace(/[^a-z0-9#\s]/g, ' ') + ' ';
     for (const [p, r] of PHRASES) s = s.split(' ' + p + ' ').join(' ' + r + ' ');
-    const species = [], colors = [], unknown = [];
+    const species = [], colors = [], unknown = [], amb = [];
+    let prev = '';
     const push = (arr, v) => { if (!arr.includes(v)) arr.push(v); };
     for (const t of s.split(/\s+/).filter(Boolean)) {
+      const before = prev; prev = t;
+      if (AMBIGUOUS.has(t)) { if (before === 'en' || before === 'couleur' || before === 'color') push(colors, 'rose'); else amb.push(t); continue; }
       if (STOP.has(t)) continue;
       const hx = t.match(/^#?([0-9a-f]{6}|[0-9a-f]{3})$/);
       if (hx && (t[0] === '#' || /[0-9]/.test(t))) {
@@ -59,16 +70,25 @@
       if (!hit) { unknown.push(t); continue; }
       push(hit.type === 'species' ? species : colors, hit.key);
     }
+    amb.forEach((t, i) => {
+      if (!species.length || (i === 0 && amb.length > 1 && !species.includes('rose'))) push(species, 'rose');
+      else push(colors, 'rose');
+    });
     return { species, colors, unknown };
   }
   const DEFAULT_COLORS = {
     lys: ['melange', 'rouge', 'rose', 'blanc', 'jaune', 'orange'],
     lycoris: ['rouge', 'blanc', 'bleu', 'dore', 'rose', 'melange'],
     tournesol: ['jaune', 'orange', 'rouge', 'creme', 'citron', 'melange'],
+    coquelicot: ['rouge', 'melange', 'blanc', 'orange', 'rose', 'jaune'],
+    rose: ['rouge', 'rose', 'blanc', 'jaune', 'peche', 'melange'],
+    tulipe: ['melange', 'rouge', 'jaune', 'rose', 'violet', 'blanc'],
+    marguerite: ['blanc', 'rose', 'melange', 'jaune', 'violet', 'lavande'],
   };
   const ALL_SPECIES = Object.keys(E.SPECIES);
-  const FEATURED = [['lycoris', 'rouge'], ['tournesol', 'jaune'], ['lys', 'melange'], ['lycoris', 'blanc'],
-    ['tournesol', 'rouge'], ['lys', 'rose'], ['lycoris', 'bleu'], ['tournesol', 'melange']];
+  const FEATURED = [['rose', 'rouge'], ['lycoris', 'rouge'], ['coquelicot', 'rouge'], ['tournesol', 'jaune'],
+    ['lys', 'melange'], ['marguerite', 'blanc'], ['tulipe', 'melange'], ['lycoris', 'bleu'],
+    ['rose', 'rose'], ['coquelicot', 'melange'], ['lys', 'rose'], ['tulipe', 'violet']];
   function results(q) {
     const p = parse(q);
     if (!q.trim()) return { p, list: FEATURED };
@@ -83,8 +103,10 @@
     return { p, list: list.slice(0, 12), related };
   }
 
-  const colorLabel = c => c[0] === '#' ? c : (E.COLORS[c] ? E.COLORS[c].label : c);
-  const titleOf = (s, c) => `${s[0].toUpperCase() + s.slice(1)} ${colorLabel(c)}`;
+  // with a species: the colour agrees with it ("rose blanche", "tulipe violette")
+  const FEM = { blanc: 'blanche', bleu: 'bleue', violet: 'violette', vert: 'verte', dore: 'dorée', noir: 'noire' };
+  const colorLabel = (c, s) => c[0] === '#' ? c : (s && E.SPECIES[s] && E.SPECIES[s].fem && FEM[c]) || (E.COLORS[c] ? E.COLORS[c].label : c);
+  const titleOf = (s, c) => `${s[0].toUpperCase() + s.slice(1)} ${colorLabel(c, s)}`;
   const seedOf = str => { let h = 2166136261; for (const ch of str) h = Math.imul(h ^ ch.charCodeAt(0), 16777619); return h >>> 0; };
   function swatchHTML(s, c, n = 6) {
     const pals = E.paletteFor(s, c);
@@ -121,7 +143,8 @@
    (  )   hmm... aucune graine
     ||    ne correspond.
   \\_||_/
-</pre><p>pour l'instant le fleuriste a du <button class="abtn" data-q="lys">[ lys ]</button>, du <button class="abtn" data-q="lycoris">[ lycoris ]</button> et des <button class="abtn" data-q="tournesol">[ tournesols ]</button>,
+</pre><p>pour l'instant le fleuriste a du <button class="abtn" data-q="lys">[ lys ]</button>, du <button class="abtn" data-q="lycoris">[ lycoris ]</button>, des <button class="abtn" data-q="tournesol">[ tournesols ]</button>,
+des <button class="abtn" data-q="coquelicot">[ coquelicots ]</button>, des <button class="abtn" data-q="roses">[ roses ]</button>, des <button class="abtn" data-q="tulipe">[ tulipes ]</button> et des <button class="abtn" data-q="marguerite">[ marguerites ]</button>,
 dans toutes les couleurs (essaie aussi un code comme <button class="abtn" data-q="lycoris #33aaff">[ #33aaff ]</button>).</p></div>`;
       return;
     }
@@ -163,7 +186,7 @@ dans toutes les couleurs (essaie aussi un code comme <button class="abtn" data-q
 
   // ---------- search box ----------
   const input = $('#q'), qcanvas = $('#qcanvas'), caret = $('#caret'), field = $('.field');
-  const PLACEHOLDER = 'lys, lycoris bleu...';
+  const PLACEHOLDER = 'lys, roses blanches...';
   const Q = { size: 64, cell: [5, 6], charPx: 7, x: 4 };
   let lastDraw = { x: 0 };
   function drawQuery() {
@@ -219,6 +242,10 @@ dans toutes les couleurs (essaie aussi un code comme <button class="abtn" data-q
     lys: ['melange', 'rouge', 'rose', 'blanc', 'creme', 'jaune', 'orange', 'peche', 'carmin', 'violet', 'bleu'],
     lycoris: ['rouge', 'blanc', 'bleu', 'dore', 'rose', 'orange', 'violet', 'melange'],
     tournesol: ['jaune', 'orange', 'rouge', 'creme', 'citron', 'dore', 'bordeaux', 'rose', 'melange'],
+    coquelicot: ['rouge', 'orange', 'blanc', 'rose', 'jaune', 'saumon', 'violet', 'melange'],
+    rose: ['rouge', 'rose', 'blanc', 'jaune', 'peche', 'bordeaux', 'corail', 'lavande', 'bleu', 'melange'],
+    tulipe: ['rouge', 'jaune', 'rose', 'blanc', 'violet', 'orange', 'noir', 'melange'],
+    marguerite: ['blanc', 'rose', 'jaune', 'violet', 'lavande', 'orange', 'melange'],
   };
   let vEngine = null, vSpecies = 'lys', vColor = 'melange', lastFocus = null;
   function radio(label, checked, onPick, colorHTML = '') {
@@ -278,7 +305,7 @@ dans toutes les couleurs (essaie aussi un code comme <button class="abtn" data-q
     if (act === 'close') closeViewer();
     else if (act === 'replant') vEngine.replant();
     else if (act === 'custom') {
-      const start = [{ species: vSpecies, color: vColor, count: { lys: 8, lycoris: 6, tournesol: 5 }[vSpecies] || 6 }];
+      const start = [{ species: vSpecies, color: vColor, count: { lys: 8, lycoris: 6, tournesol: 5, coquelicot: 7, rose: 7, tulipe: 8, marguerite: 10 }[vSpecies] || 6 }];
       closeViewer();
       window.Composer.openEdit(start);
     }

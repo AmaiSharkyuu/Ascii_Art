@@ -80,6 +80,7 @@
       if (location.protocol === 'file:' && !from) shown = '/une-page-perdue';
       document.getElementById('path').textContent = shown;
       document.getElementById('home').href = base;
+      ['favicon.ico', 'favicon.svg'].forEach(function (n) { var ic = document.createElement('link'); ic.rel = 'icon'; ic.href = base + n; document.head.appendChild(ic); });
 
       // the 404 flower: grows, blooms, wilts, drops its petals. A different colour each visit.
       var colors = ['rouge', 'rose', 'jaune', 'orange', 'blanc', 'peche'];
